@@ -18,8 +18,14 @@ type Sizes = [Int]
 data Tree a = Node Height [Tree a] Sizes | Leaf [a]
     deriving (Show)
 
-testTree :: Tree Int
-testTree = buildTree [0..300]
+testTree :: Int -> Tree Int
+testTree n = buildTree [0..n]
+
+oneto10 :: Tree Int
+oneto10 = buildTree[0..150]
+
+tento20 :: Tree Int
+tento20 = buildTree[151..300]
 
 buildTree :: [a] -> Tree a
 buildTree as = buildNodes leaves 1
@@ -43,20 +49,22 @@ collect n as = take n as : collect n (drop n as)
 --                                                  --
 ------------------------------------------------------
 
+ppTree t = ppTree' level t
+        where Node level _ _ = t
 
-ppTree :: Int -> Tree Int -> IO()
-ppTree d (Leaf a)  = do
+ppTree' :: Int -> Tree Int -> IO()
+ppTree' d (Leaf a)  = do
                         replicateM (d - 2) (putStr "        ") 
                         putStr "\t"
                         putStr "    ⊢---"
                         print a
-ppTree d (Node n ts _) = do
+ppTree' d (Node n ts _) = do
                         replicateM (d - 2) (putStr "        ")
                         putStr "\t"
                         putStr "    ⊢---"
                         putStr "Node: "
                         print n
-                        mapM (ppTree (d+1)) ts
+                        mapM (ppTree' (d+1)) ts
                         return ()
 
 
@@ -103,25 +111,49 @@ getRightChild :: Tree a -> Int -> Tree a
 getRightChild tree l = getEndChild tree l last
 
 
-dropEndChild :: Tree a -> Int -> ([Tree a] -> Tree a) -> Tree a
-dropEndChild (Leaf a) _ _ = Leaf a
-dropEndChild (Node l ts ss) n f | l == n    = Node l (init ts) (if (length ss > 0) then init ss else [])
-                                | otherwise = Node l ((init ts) ++ [dropRightChild (f ts) n]) ss
-
 dropLeftChild :: Tree a -> Int -> Tree a
-dropLeftChild tree l = dropEndChild tree l head
+dropLeftChild (Leaf a) _ = Leaf a
+dropLeftChild (Node l ts ss) n | l == n    = Node l (tail ts) (if (length ss > 0) then tail ss else [])
+                               | otherwise = Node l ([dropLeftChild (head ts) n] ++ tail ts) ss 
 
 dropRightChild :: Tree a -> Int -> Tree a
-dropRightChild tree l = dropEndChild tree l last
+dropRightChild (Leaf a) _ = Leaf a
+dropRightChild (Node l ts ss) n | l == n    = Node l (init ts) (if (length ss > 0) then init ss else [])
+                                | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) ss 
 
 mergeEnds :: Tree a -> Tree a -> Tree a
-mergeEnds t1 t2 = Node 1 [rightChild,leftChild] sizes
-            where leftChild  = getLeftChild t2 0
-                  rightChild = getRightChild t1 0
-                  sizeLeft   = length ((\(Leaf a) -> a) leftChild)
-                  sizeRight  = length ((\(Leaf a) -> a) rightChild)
-                  sizes = if (sizeLeft /= branchingFactor || sizeRight /= branchingFactor) then [sizeRight,sizeLeft] else []
+mergeEnds t1 t2 = Node 1 [Leaf leftChild, Leaf rightChild] sizes
+            where Leaf leftLeaves  = getRightChild t1 0
+                  Leaf rightLeaves = getLeftChild t2 0
+                  leaves = leftLeaves ++ rightLeaves
+                  leftChild = take branchingFactor leaves
+                  rightChild = drop branchingFactor leaves
+                  sizes = if (length leftChild) /= (length rightChild) then [length leftChild,length rightChild] else []
 
+stripTree :: Tree a -> [Tree a]
+stripTree (Leaf a) = [Leaf a]
+stripTree (Node _ ts _) = ts
 
-concatAtLevel :: (Tree a,Tree a,Tree a) -> (Tree a,Tree a,Tree a)
-concatAtLevel = undefined
+balanceLeaves :: [Tree a] -> [Tree a]
+balanceLeaves ts = buildLeaves as
+                where as = concat $ map (\(Leaf a) -> a) ts
+
+mergeNodes :: [Tree a] -> [Tree a]
+mergeNodes ns = case head firstMerge of
+                  (Leaf _)     -> balanceLeaves secondMerge
+                  (Node l _ _) -> map (\ts -> Node l ts []) (collect branchingFactor secondMerge) -- GET SIZES
+                where firstMerge  = concat $ map stripTree ns
+                      secondMerge = concat $ map stripTree firstMerge
+
+snake :: Tree Int
+snake = mergeRebalance (t1,t2,t3)
+      where t1 = getRightChild (dropRightChild oneto10 1) 1
+            t2 = mergeEnds oneto10 tento20
+            t3 = getLeftChild (dropLeftChild tento20 1) 1
+
+mergeRebalance :: (Tree a,Tree a,Tree a) -> Tree a
+mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] [] -- FIND SIZES
+                        where mergedNodes = mergeNodes[t1,t2,t3]
+                              Node l _ _ = t2
+                              left = Node l (take branchingFactor mergedNodes) [] -- FIND SIZES
+                              right = Node l (drop branchingFactor mergedNodes) []
