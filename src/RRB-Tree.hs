@@ -22,10 +22,10 @@ testTree :: Int -> Tree Int
 testTree n = buildTree [0..n]
 
 oneto10 :: Tree Int
-oneto10 = buildTree[0..150]
+oneto10 = buildTree[0..200]
 
 tento20 :: Tree Int
-tento20 = buildTree[151..300]
+tento20 = buildTree[201..350]
 
 buildTree :: [a] -> Tree a
 buildTree as = buildNodes leaves 1
@@ -49,22 +49,22 @@ collect n as = take n as : collect n (drop n as)
 --                                                  --
 ------------------------------------------------------
 
-ppTree t = ppTree' level t
+ppTree t = ppTree' level level t
         where Node level _ _ = t
 
-ppTree' :: Int -> Tree Int -> IO()
-ppTree' d (Leaf a)  = do
-                        replicateM (d - 2) (putStr "        ") 
+ppTree' :: Int -> Int -> Tree Int -> IO()
+ppTree' d x (Leaf a)  = do
+                        replicateM (d - x) (putStr "        ") 
                         putStr "\t"
                         putStr "    ⊢---"
                         print a
-ppTree' d (Node n ts _) = do
-                        replicateM (d - 2) (putStr "        ")
+ppTree' d x (Node n ts _) = do
+                        replicateM (d - x) (putStr "        ")
                         putStr "\t"
                         putStr "    ⊢---"
                         putStr "Node: "
                         print n
-                        mapM (ppTree' (d+1)) ts
+                        mapM (ppTree' d (x-1)) ts
                         return ()
 
 
@@ -150,6 +150,24 @@ snake = mergeRebalance (t1,t2,t3)
       where t1 = getRightChild (dropRightChild oneto10 1) 1
             t2 = mergeEnds oneto10 tento20
             t3 = getLeftChild (dropLeftChild tento20 1) 1
+
+badger :: Tree Int
+badger = middleTree
+      where t1 = dropRightChild oneto10 1
+            t2 = mergeEnds oneto10 tento20
+            t3 = dropLeftChild tento20 1
+            (t1',t2',t3') =  mergeAt 1 (t1,t2,t3)
+            (t1'',t2'',t3'') =  mergeAt 2 (t1',t2',t3')
+            (_,middleTree,_) =  mergeAt 3 (t1'',t2'',t3'')
+
+
+mergeAt :: Int -> (Tree a,Tree a,Tree a) -> (Tree a,Tree a,Tree a)
+mergeAt n (t1,t2,t3) = (leftTree,mid,rightTree)
+                where leftTree   = dropRightChild t1 n
+                      leftChild  = getRightChild leftTree n
+                      mid        = mergeRebalance (leftChild,t2,rightChild)
+                      rightTree  = dropLeftChild t3 n
+                      rightChild = getLeftChild rightTree n
 
 mergeRebalance :: (Tree a,Tree a,Tree a) -> Tree a
 mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] [] -- FIND SIZES
