@@ -1,7 +1,10 @@
 \documentclass{beamer}
 \usetheme{Boadilla}
+\usepackage{mathtools}
 \usepackage{amssymb,array}
- 
+\usepackage{graphicx}
+\usepackage[square]{natbib} 
+
 \usepackage[utf8]{inputenc}
  
  
@@ -21,9 +24,9 @@
 
 \begin{itemize}
 
-	\item Invented by researchers at EPFL in Lausanne
-	\item RRB-Trees are part of the ongoing development of the Scala Programming Language
-	\item The goal is to present a datastructure which can be concatenated in O(log n) time at no cost to other operations
+	\item Invented by researchers at EPFL in Lausanne\cite{bagwell2011rrb} \pause
+	\item RRB-Trees are part of the ongoing development of the Scala Programming Language \pause
+	\item The goal is to present a datastructure which can be concatenated in O(log n) time at no cost to other operations \pause
 
 \end{itemize}
 
@@ -49,13 +52,14 @@
 
 \begin{itemize}
 
-	\item To represent a vector as a tree structure
+	\item To represent a vector as a tree structure \pause
 	\item Multiple variables to control:
 		\begin{itemize}
 			\item Branching factor
 			\item Balance of the tree
 		\end{itemize}
-	\item The main operations are: 
+	\pause
+	\item The main operations are:
 	\noindent\parbox[t]{2.4in}{\raggedright%
 		\begin{itemize}
 			\item Indexing
@@ -76,7 +80,13 @@
 \begin{frame}
 \frametitle{The Problem}
 
-Given two trees of branching factor m, it is impossible to merge the trees faster than linear time without degenerating to a linked list
+Given two trees of branching factor m, a naive approach will simply be a copy of linear cost from one tree to another. Likewise a naive O(1) solution is possible, but at the cost of degenerating the datastructure into a linked list
+
+	\begin{center}
+	
+	\includegraphics[scale=0.3]{joinvectors.png}
+	
+	\end{center}
 
 \end{frame}
 
@@ -86,10 +96,21 @@ Given two trees of branching factor m, it is impossible to merge the trees faste
 
 	\begin{itemize}
 	
-		\item With a perfectly balanced tree of branching factor m, for any particular sub branch, there are exactly m\^h-1 leaves. Therefore, an index i can be found using Li/(m\^h-1)L
-
-	
+		\item With a perfectly balanced tree of branching factor m, for any particular sub branch, there are exactly $m^{h-1}$  leaves. Therefore, an index i can be found using $\lfloor i / (m^{h-1}) \rfloor$ 
 	\end{itemize}
+	\begin{center}
+	
+	\includegraphics[scale=0.25]{radixbalancedtree.png}
+	
+	\end{center}
+	
+	eg. For m = 4. Finding the index 5 using the tree above yields the following calculations:
+	\begin{tabular}{l l}
+	
+	$\lfloor 5 / (4^{3-1}) \rfloor = 0$ & $ \lfloor 5 / (4^{1-1}) \rfloor = 5 $ \\
+	$\lfloor 5 / (4^{2-1}) \rfloor = 1$ & $ 5 \quad \% \quad 4 = 1 $ \\
+	
+	\end{tabular}		
 
 \end{frame}
 
@@ -111,9 +132,19 @@ Given two trees of branching factor m, it is impossible to merge the trees faste
 \frametitle{Branching Factor and Balance}
 
 	\begin{itemize}
-		\item BALANCE
+		\item Having a variable branching factor makes it more difficult to maintain a balanced structure. \pause
+		\item A good way of still being able to maintain the convenience of a balanced tree is to simply state the size of each unbalanced subtree. \pause
+		\item Furthermore, choosing the upper and lower bounds of the branching factor can help determine how unbalanced the tree could become. \pause
+		\item For a tree of branching factor m, the height h is $log_m (n)$. Therefore, given two possible values of m. the ratio of the heights is $\frac{log_{m_{min}}}{log_{m_{max}}}$ \pause
+		\item The closer to 1 this ratio is the more balanced the tree is. Choosing $m_{max} = m_{min} + 1$ is a good compromise. \pause
 	
 	\end{itemize}
+	
+	\begin{center}
+	
+	\includegraphics[scale=0.25]{relaxedradixbalancedtree.png}
+	
+	\end{center}
 
 \end{frame}
  
@@ -136,7 +167,45 @@ Given two trees of branching factor m, it is impossible to merge the trees faste
 \begin{frame}
 \frametitle{Concatenation Process}
 
+	\begin{center}
+	
+	\includegraphics[scale=0.3]{concat1.png}
+	
+	\end{center}
+	
+	merge the leaf nodes of each tree to create a new tree of height 1
 
+\end{frame}
+
+\begin{frame}
+\frametitle{Concatenation Process}
+
+	\begin{center}
+	
+	\includegraphics[scale=0.3]{concat2.png}
+	
+	\end{center}
+	
+	propagate the merge up the tree. Note: At each stage of the merge the tree needs to be rebalanced
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Concatenation Process}
+
+	\begin{center}
+	
+	\includegraphics[scale=0.3]{concat3.png}
+	
+	\end{center}
+	
+	Only the highlighted nodes need to be modified. The rest are simply shared.	
+	
+	\begin{center}
+	
+	\includegraphics[scale=0.3]{concat4.png}
+	
+	\end{center}
 \end{frame}
 
 \begin{frame}
@@ -150,7 +219,6 @@ Given two trees of branching factor m, it is impossible to merge the trees faste
 	\end{itemize}
 	
 	\begin{center}
-	
 	\begin{tabular}{| l || c | c |}
 		\hline
 		& RRB-Vector & With m = 32 \\
@@ -170,7 +238,26 @@ Given two trees of branching factor m, it is impossible to merge the trees faste
 \begin{frame}
 \frametitle{Runtime Complexity In Relation To Similar Structures}
 
+	\begin{center}
+	\begin{tabular}{| l || c | c | c |}
+		\hline
+		& RRB-Vector & Finger Tree & Red-Black Tree\\
+		\hline
+		indexing & eC & $ Log_2 $ & $ Log_2 $ \\
+		update & eC & $ Log_2 $ & $ Log_2 $\\
+		insert ends & aC & aC & $ Log_2 $\\
+		concat & L v.s. eC & $ Log_2 $ & L\\
+		split & eC & $ Log_2 $ & $ Log_2 $\\
+		\hline
+		\end{tabular}
+	\end{center}
 
+\end{frame}
+
+\begin{frame}
+
+\bibliographystyle{abbrvnat}
+\bibliography{/home/elias/Documents/G52AAD/RRB-Trees/data/Presentation}
 
 \end{frame}
 
