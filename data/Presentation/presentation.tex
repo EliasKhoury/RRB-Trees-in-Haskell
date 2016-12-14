@@ -1,5 +1,6 @@
 \documentclass{beamer}
 \usetheme{Boadilla}
+\usepackage{amssymb,array}
  
 \usepackage[utf8]{inputenc}
  
@@ -35,16 +36,142 @@
 \begin{itemize}
 
 	\item RRB-Trees can be used to implement an efficient vector datastructure
-	\item Not only is the concatenation fast, but it does not compromise other valuable vector functions
-	\item By using the principle of "sharing" the space complexity of the datastructure can also be minimised
+	\item As it is a purely functional datastructure the operations on it can be easily run in parallel  
+	\item An application for efficient vector concatenation is:
 
 \end{itemize}
 
 \end{frame}
  
 \begin{frame}
-\frametitle{Sample frame title}
-This is a text in first frame. This is a text in first frame. This is a text in first frame.
+\frametitle{Main Concept}
+
+
+\begin{itemize}
+
+	\item To represent a vector as a tree structure
+	\item Multiple variables to control:
+		\begin{itemize}
+			\item Branching factor
+			\item Balance of the tree
+		\end{itemize}
+	\item The main operations are: 
+	\noindent\parbox[t]{2.4in}{\raggedright%
+		\begin{itemize}
+			\item Indexing
+			\item Updating
+		\end{itemize}
+	}%
+	\noindent\parbox[t]{2.4in}{\raggedright%
+		\begin{itemize}
+			\item Append to the front or back
+			\item Splitting
+		\end{itemize}
+	}%
+
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{The Problem}
+
+Given two trees of branching factor m, it is impossible to merge the trees faster than linear time without degenerating to a linked list
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Radix Search}
+
+	\begin{itemize}
+	
+		\item With a perfectly balanced tree of branching factor m, for any particular sub branch, there are exactly m\^h-1 leaves. Therefore, an index i can be found using Li/(m\^h-1)L
+
+	
+	\end{itemize}
+
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Relaxed Radix Search}
+
+	\begin{itemize}
+		\item However, for this particular application we need to relax the branching factor m in order to circumvent the linear concatenation cost.
+		\item The concept of a variable branching factor has been applied to tree structures before, like 2-3 Trees and finger trees
+		\item By relaxing the branching factor, we lose the guarantee that any leaf node can be found in O(1) time, this is due to the possibility of the tree being slightly unbalanced. 
+		\item The cost this adds is a slight linear lookup when arriving at a node that is unbalanced.
+	
+	\end{itemize}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Branching Factor and Balance}
+
+	\begin{itemize}
+		\item BALANCE
+	
+	\end{itemize}
+
 \end{frame}
  
+ 
+\begin{frame}
+\frametitle{RRB-Trees}
+
+	\begin{itemize}
+	
+		\item The concatenation operation works by effectively merging the right side of the left tree, with the left side of the right tree. 
+		\item starting from the leaf nodes of both trees, a new tree is built from the bottom up containing the merged data of both trees.
+		\item The concept behind this is to use the concept of sharing when building this new tree in order to minimise the cost of copying data
+		\item For a tree of height, h. The complexity of this operation is O(Log(h)). However, there is a significant constant time cost when it comes to ensuring that the merged tree is balanced
+	
+	\end{itemize}
+
+\end{frame}
+ 
+ 
+\begin{frame}
+\frametitle{Concatenation Process}
+
+
+\end{frame}
+
+\begin{frame}
+\frametitle{A note on branching factor}
+
+	\begin{itemize}
+		\item For simplicity of the diagrams a branching factor of 4 was chosen
+		\item In practice the most efficient branching factor is actually 32
+		\item Branching factor controls tree height which affects the runtime of the operations
+		\item Need to minimise branching factor without degenerating into a linked list
+	\end{itemize}
+	
+	\begin{center}
+	
+	\begin{tabular}{| l || c | c |}
+		\hline
+		& RRB-Vector & With m = 32 \\
+		\hline
+		indexing & $ log_m $ & eC\\
+		update & aC & eC \\
+		insert ends & $ m \times log_m $ & aC \\
+		concat & $ m^2 \times log_m $ & L v.s. eC \\
+		split & $ m \times log_m $ & eC \\
+		\hline
+		\end{tabular}
+	\end{center}
+
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Runtime Complexity In Relation To Similar Structures}
+
+
+
+\end{frame}
+
 \end{document}
