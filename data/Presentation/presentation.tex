@@ -24,9 +24,9 @@
 
 \begin{itemize}
 
-	\item Invented by researchers at EPFL in Lausanne\cite{bagwell2011rrb} \pause
+	\item Invented by researchers at EPFL in Lausanne\citep{bagwell2011rrb} \pause
 	\item RRB-Trees are part of the ongoing development of the Scala Programming Language \pause
-	\item The goal is to present a datastructure which can be concatenated in O(log n) time at no cost to other operations \pause
+	\item The goal is to present a tree datastructure which can be concatenated in O(log n) time at no cost to other operations
 
 \end{itemize}
 
@@ -39,8 +39,8 @@
 \begin{itemize}
 
 	\item RRB-Trees can be used to implement an efficient vector datastructure
-	\item As it is a purely functional datastructure the operations on it can be easily run in parallel  
-	\item An application for efficient vector concatenation is:
+	\item As it is a purely functional datastructure the operations on it can be easily run in parallel\citep{stucki2015rrb} 
+	\item An application for efficient vector concatenation can be used to generate SQL queries, or even to dynamically generate XML code or HTML code for websites. \citep{hull2006balancing}
 
 \end{itemize}
 
@@ -52,7 +52,7 @@
 
 \begin{itemize}
 
-	\item To represent a vector as a tree structure \pause
+	\item To represent a vector as a tree structure (an alternative example being a cons list) \pause
 	\item Multiple variables to control:
 		\begin{itemize}
 			\item Branching factor
@@ -80,12 +80,17 @@
 \begin{frame}
 \frametitle{The Problem}
 
-Given two trees of branching factor m, a naive approach will simply be a copy of linear cost from one tree to another. Likewise a naive O(1) solution is possible, but at the cost of degenerating the datastructure into a linked list
+\begin{itemize}
+	\item Given two trees of branching factor m, a naive approach will simply be a copy of linear cost from one tree to another. \pause
+	\item Likewise a naive O(1) solution is possible by creating a new root and simply attaching it to the two trees. However, this is at the cost of degenerating the datastructure into a linked list\citep{boehm1995ropes} \pause
+
+\end{itemize}
 
 	\begin{center}
-	
-	\includegraphics[scale=0.3]{joinvectors.png}
-	
+	\begin{tabular}{c c}
+	\includegraphics[scale=0.3]{joinvectors.png} & \includegraphics[scale=0.3]{ropes.png}\\
+	Concatenating Two Vectors & Examples of Ropes
+	\end{tabular}	
 	\end{center}
 
 \end{frame}
@@ -96,14 +101,14 @@ Given two trees of branching factor m, a naive approach will simply be a copy of
 
 	\begin{itemize}
 	
-		\item With a perfectly balanced tree of branching factor m, for any particular sub branch, there are exactly $m^{h-1}$  leaves. Therefore, an index i can be found using $\lfloor i / (m^{h-1}) \rfloor$ 
+		\item With a perfectly balanced tree of branching factor m, for any particular sub branch, there are exactly $m^{h-1}$  leaves. Therefore, an index i can be found using $\lfloor i / (m^{h-1}) \rfloor$ \citep{angle1999radix}
 	\end{itemize}
 	\begin{center}
 	
 	\includegraphics[scale=0.25]{radixbalancedtree.png}
 	
 	\end{center}
-	
+	\pause
 	eg. For m = 4. Finding the index 5 using the tree above yields the following calculations:
 	\begin{tabular}{l l}
 	
@@ -119,9 +124,9 @@ Given two trees of branching factor m, a naive approach will simply be a copy of
 \frametitle{Relaxed Radix Search}
 
 	\begin{itemize}
-		\item However, for this particular application we need to relax the branching factor m in order to circumvent the linear concatenation cost.
-		\item The concept of a variable branching factor has been applied to tree structures before, like 2-3 Trees and finger trees
-		\item By relaxing the branching factor, we lose the guarantee that any leaf node can be found in O(1) time, this is due to the possibility of the tree being slightly unbalanced. 
+		\item However, for this particular application we need to relax the branching factor m in order to circumvent the linear concatenation cost. \pause
+		\item The concept of a variable branching factor has been applied to tree structures before, like 2-3 Trees and finger trees\citep{hinze2006finger}. \pause
+		\item By relaxing the branching factor, we lose the guarantee that any leaf node can be found in O(1) time, this is due to the possibility of the tree being slightly unbalanced. \pause
 		\item The cost this adds is a slight linear lookup when arriving at a node that is unbalanced.
 	
 	\end{itemize}
@@ -130,11 +135,7 @@ Given two trees of branching factor m, a naive approach will simply be a copy of
 
 \begin{frame}
 \frametitle{Branching Factor and Balance}
-
 	\begin{itemize}
-		\item Having a variable branching factor makes it more difficult to maintain a balanced structure. \pause
-		\item A good way of still being able to maintain the convenience of a balanced tree is to simply state the size of each unbalanced subtree. \pause
-		\item Furthermore, choosing the upper and lower bounds of the branching factor can help determine how unbalanced the tree could become. \pause
 		\item For a tree of branching factor m, the height h is $log_m (n)$. Therefore, given two possible values of m. the ratio of the heights is $\frac{log_{m_{min}}}{log_{m_{max}}}$ \pause
 		\item The closer to 1 this ratio is the more balanced the tree is. Choosing $m_{max} = m_{min} + 1$ is a good compromise. \pause
 	
@@ -147,22 +148,6 @@ Given two trees of branching factor m, a naive approach will simply be a copy of
 	\end{center}
 
 \end{frame}
- 
- 
-\begin{frame}
-\frametitle{RRB-Trees}
-
-	\begin{itemize}
-	
-		\item The concatenation operation works by effectively merging the right side of the left tree, with the left side of the right tree. 
-		\item starting from the leaf nodes of both trees, a new tree is built from the bottom up containing the merged data of both trees.
-		\item The concept behind this is to use the concept of sharing when building this new tree in order to minimise the cost of copying data
-		\item For a tree of height, h. The complexity of this operation is O(Log(h)). However, there is a significant constant time cost when it comes to ensuring that the merged tree is balanced
-	
-	\end{itemize}
-
-\end{frame}
- 
  
 \begin{frame}
 \frametitle{Concatenation Process}
@@ -215,9 +200,8 @@ Given two trees of branching factor m, a naive approach will simply be a copy of
 		\item For simplicity of the diagrams a branching factor of 4 was chosen
 		\item In practice the most efficient branching factor is actually 32
 		\item Branching factor controls tree height which affects the runtime of the operations
-		\item Need to minimise branching factor without degenerating into a linked list
 	\end{itemize}
-	
+	\pause
 	\begin{center}
 	\begin{tabular}{| l || c | c |}
 		\hline
@@ -255,9 +239,12 @@ Given two trees of branching factor m, a naive approach will simply be a copy of
 \end{frame}
 
 \begin{frame}
+\frametitle{References}
+
+All diagrams are sourced from \cite{bagwell2011rrb} and \cite{stucki2015rrb}
 
 \bibliographystyle{abbrvnat}
-\bibliography{/home/elias/Documents/G52AAD/RRB-Trees/data/Presentation}
+\bibliography{/home/elias/Documents/G52AAD/RRB-Trees/data/Presentation/references}
 
 \end{frame}
 
