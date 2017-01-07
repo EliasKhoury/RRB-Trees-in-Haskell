@@ -3,7 +3,7 @@ import Control.Monad
 
 
 branchingFactor :: Int
-branchingFactor = 4 -- Branching factor of tree
+branchingFactor = 32 -- Branching factor of tree
 
 
 ------------------------------------------------------
@@ -58,13 +58,17 @@ ppTree' d (Leaf a)  = do
                         putStr "\t"
                         putStr "    ⊢---"
                         print a
-ppTree' d (Node n ts _) = do
-                        replicateM (d - 2) (putStr "        ")
+ppTree' d x (Node n ts ss) = do
+                        replicateM (d - x) (putStr "        ")
                         putStr "\t"
                         putStr "    ⊢---"
                         putStr "Node: "
                         print n
-                        mapM (ppTree' (d+1)) ts
+                        replicateM (d - x) (putStr "        ")
+                        putStr "\t"
+                        putStr "    Sizes: "
+                        print ss
+                        mapM (ppTree' d (x-1)) ts
                         return ()
 
 
@@ -83,12 +87,14 @@ radixSearch i (Node l ts ss) = radixSearch (i - iOffset) (ts !! nodeCount)
                       iOffset   = (branchingFactor ^ l) * nodeCount
 
 
-
 relaxedSearch :: Int -> Tree a -> a 
-relaxedSearch n (Leaf as) = as !! (n `mod` branchingFactor)
-relaxedSearch i (Node l ts ss) = relaxedSearch (i - iOffset) (ts !! nodeCount) 
+relaxedSearch i (Leaf as) = as !! (i `mod` branchingFactor)
+relaxedSearch i (Node l ts [])  = relaxedSearch (i - iOffset) (ts !! nodeCount) 
                 where nodeCount = (i `div` (branchingFactor ^ l)) `mod` branchingFactor
                       iOffset   = (branchingFactor ^ l) * nodeCount
+relaxedSearch i (Node l ts ss)  = relaxedSearch (i - iOffset) (ts !! subTree)
+                where iOffset   = if subTree == 0 then 0 else ss !! (subTree - 1) 
+                      subTree   = length (takeWhile (< i) ss) 
 
 
 ------------------------------------------------------
@@ -110,7 +116,15 @@ getLeftChild tree l = getEndChild tree l head
 getRightChild :: Tree a -> Int -> Tree a
 getRightChild tree l = getEndChild tree l last
 
+dropLeftChild :: Tree a -> Int -> Tree a
+dropLeftChild (Node l ts _) n = if singleKid || l == (n + 1) then Node l (tail ts) [] else Node l ([dropLeftChild (head ts) n] ++ tail ts) []
+                  where singleKid = length (getKids (head ts)) == 1
 
+dropRightChild :: Tree a -> Int -> Tree a
+dropRightChild (Node l ts _) n = if singleKid || l == (n + 1) then Node l (init ts) [] else Node l (init ts ++ [dropRightChild (last ts) n]) []
+                  where singleKid = length (getKids (last ts)) == 1
+
+{-
 dropLeftChild :: Tree a -> Int -> Tree a
 dropLeftChild (Leaf a) _ = Leaf a
 dropLeftChild (Node l ts ss) n | l == n    = Node l (tail ts) (if (length ss > 0) then tail ss else [])
@@ -120,40 +134,80 @@ dropRightChild :: Tree a -> Int -> Tree a
 dropRightChild (Leaf a) _ = Leaf a
 dropRightChild (Node l ts ss) n | l == n    = Node l (init ts) (if (length ss > 0) then init ss else [])
                                 | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) ss 
+-}
 
+-- Joins the ends of two trees to start the merging process
+
+-- Extracts children from a tree
+getKids :: Tree a -> [Tree a]
+getKids (Leaf a) = [Leaf a]
+getKids (Node _ ts _) = ts
+
+getSizes :: Tree a -> [Int]
+getSizes (Leaf a)      = [length a]
+getSizes (Node _ _ ss) = ss
+
+-- Joins the ends of two trees to make a new tree of height 2
 mergeEnds :: Tree a -> Tree a -> Tree a
-mergeEnds t1 t2 = Node 1 [Leaf leftChild, Leaf rightChild] sizes
-            where Leaf leftLeaves  = getRightChild t1 0
-                  Leaf rightLeaves = getLeftChild t2 0
+mergeEnds t1 t2 = Node 2 [Node 1 leftChild [], Node 1 rightChild []] (if lSize == rSize then [] else [lSize,rSize])
+            where Node _ leftLeaves _  = getRightChild t1 1
+                  Node _ rightLeaves _ = getLeftChild t2 1
                   leaves = leftLeaves ++ rightLeaves
                   leftChild = take branchingFactor leaves
                   rightChild = drop branchingFactor leaves
-                  sizes = if (length leftChild) /= (length rightChild) then [length leftChild,length rightChild] else []
+                  [lSize,rSize] = map (length.stripLeaf) [last leftChild,last rightChild]
+                  stripLeaf = \(Leaf a) -> a
 
-stripTree :: Tree a -> [Tree a]
-stripTree (Leaf a) = [Leaf a]
-stripTree (Node _ ts _) = ts
-
+-- Rebuilds leaves to maintain branching factor of m
 balanceLeaves :: [Tree a] -> [Tree a]
 balanceLeaves ts = buildLeaves as
                 where as = concat $ map (\(Leaf a) -> a) ts
 
+-- Rebuilds a list of nodes by taking all their children and reconstructing the parents
 mergeNodes :: [Tree a] -> [Tree a]
 mergeNodes ns = case head firstMerge of
                   (Leaf _)     -> balanceLeaves secondMerge
-                  (Node l _ _) -> map (\ts -> Node l ts []) (collect branchingFactor secondMerge) -- GET SIZES
-                where firstMerge  = concat $ map stripTree ns
-                      secondMerge = concat $ map stripTree firstMerge
+                  (Node l _ _) -> map (\ts -> Node l ts (computeSizes ts l)) (collect branchingFactor secondMerge) -- GET SIZES
+                where firstMerge  = concat $ map getKids ns
+                      secondMerge = concat $ map getKids firstMerge
 
-snake :: Tree Int
-snake = mergeRebalance (t1,t2,t3)
-      where t1 = getRightChild (dropRightChild oneto10 1) 1
-            t2 = mergeEnds oneto10 tento20
-            t3 = getLeftChild (dropLeftChild tento20 1) 1
+computeSizes :: [Tree a] -> Int -> [Int]
+computeSizes ts l = if all (==[]) sizes then [] else calcNewSize sizes l 0
+                        where sizes = map getSizes ts
+
+calcNewSize :: [[Int]] -> Int -> Int -> [Int]
+calcNewSize [] _ _      = []
+calcNewSize ([]:ss) l i = cumulativeIndex : (calcNewSize ss l cumulativeIndex) 
+                  where cumulativeIndex = (branchingFactor ^ l) + i
+calcNewSize (s:ss) l i = cumulativeIndex : (calcNewSize ss l cumulativeIndex)
+                  where cumulativeIndex = (last s) + i
+
 
 mergeRebalance :: (Tree a,Tree a,Tree a) -> Tree a
-mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] [] -- FIND SIZES
+mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] (computeSizes [left,right] (l+1)) -- FIND SIZES
                         where mergedNodes = mergeNodes[t1,t2,t3]
-                              Node l _ _ = t2
-                              left = Node l (take branchingFactor mergedNodes) [] -- FIND SIZES
-                              right = Node l (drop branchingFactor mergedNodes) []
+                              Node l _ _  = t1
+                              leftChildren = (take branchingFactor mergedNodes)
+                              rightChildren = (drop branchingFactor mergedNodes)
+                              left = Node l leftChildren (computeSizes leftChildren l) -- FIND SIZES
+                              right = Node l rightChildren (computeSizes rightChildren l)
+
+
+-- Merges left and right tree into the middle tree at a given height
+mergeAt :: Int -> (Tree a,Tree a,Tree a) -> (Tree a,Tree a,Tree a)
+mergeAt n (t1,t2,t3) = (leftTree,mid,rightTree)
+                where leftTree   = dropRightChild t1 n
+                      leftChild  = getRightChild t1 n
+                      mid        = mergeRebalance (leftChild,t2,rightChild)
+                      rightTree  = dropLeftChild t3 n
+                      rightChild = getLeftChild t3 n
+
+
+badger :: Tree Int
+badger = t2''
+      where t1 = dropRightChild oneto10 1
+            t2 = mergeEnds oneto10 tento20
+            t3 = dropLeftChild tento20 1
+            (t1',t2',t3') =  mergeAt 2 (t1,t2,t3)
+            (t1'',t2'',t3'') =  mergeAt 3 (t1',t2',t3')
+            --(_,middleTree,_) =  mergeAt 4 (t1'',t2'',t3'')
