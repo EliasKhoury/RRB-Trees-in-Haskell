@@ -1,0 +1,39 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Angle et~al.(1999)Angle, Harriman~Jr, and Ladwig]{angle1999radix}
+R.~L. Angle, E.~S. Harriman~Jr, and G.~B. Ladwig.
+\newblock Radix tree search logic, Feb.~16 1999.
+\newblock US Patent 5,873,078.
+
+\bibitem[Bagwell and Rompf(2011)]{bagwell2011rrb}
+P.~Bagwell and T.~Rompf.
+\newblock Rrb-trees: Efficient immutable vectors.
+\newblock Technical report, 2011.
+
+\bibitem[Boehm et~al.(1995)Boehm, Atkinson, and Plass]{boehm1995ropes}
+H.-J. Boehm, R.~Atkinson, and M.~Plass.
+\newblock Ropes: an alternative to strings.
+\newblock \emph{Software: Practice and Experience}, 25\penalty0 (12):\penalty0
+  1315--1330, 1995.
+
+\bibitem[Hinze and Paterson(2006)]{hinze2006finger}
+R.~Hinze and R.~Paterson.
+\newblock Finger trees: a simple general-purpose data structure.
+\newblock \emph{Journal of Functional Programming}, 16\penalty0 (02):\penalty0
+  197--217, 2006.
+
+\bibitem[Hull()]{hull2006balancing}
+M.~Hull.
+\newblock Balancing simplicity and efficiency in web applications.
+
+\bibitem[Stucki et~al.(2015)Stucki, Rompf, Ureche, and Bagwell]{stucki2015rrb}
+N.~Stucki, T.~Rompf, V.~Ureche, and P.~Bagwell.
+\newblock Rrb vector: a practical general purpose immutable sequence.
+\newblock In \emph{ACM SIGPLAN Notices}, volume~50, pages 342--354. ACM, 2015.
+
+\end{thebibliography}
