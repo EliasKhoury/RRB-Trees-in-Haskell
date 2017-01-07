@@ -49,12 +49,12 @@ collect n as = take n as : collect n (drop n as)
 --                                                  --
 ------------------------------------------------------
 
-ppTree t = ppTree' level t
+ppTree t = ppTree' level level t
         where Node level _ _ = t
 
-ppTree' :: Int -> Tree Int -> IO()
-ppTree' d (Leaf a)  = do
-                        replicateM (d - 2) (putStr "        ") 
+ppTree' :: Int -> Int -> Tree Int -> IO()
+ppTree' d x (Leaf a)  = do
+                        replicateM (d - x) (putStr "        ") 
                         putStr "\t"
                         putStr "    ⊢---"
                         print a
