@@ -22,10 +22,10 @@ testTree :: Int -> Tree Int
 testTree n = buildTree [0..n]
 
 oneto10 :: Tree Int
-oneto10 = buildTree[0..999999]
+oneto10 = buildTree[0..150]
 
 tento20 :: Tree Int
-tento20 = buildTree[1000000..9999999]
+tento20 = buildTree[151..300]
 
 buildTree :: [a] -> Tree a
 buildTree as = buildNodes leaves 1
@@ -49,12 +49,12 @@ collect n as = take n as : collect n (drop n as)
 --                                                  --
 ------------------------------------------------------
 
-ppTree t = ppTree' level level t
+ppTree t = ppTree' level t
         where Node level _ _ = t
 
-ppTree' :: Int -> Int -> Tree Int -> IO()
-ppTree' d x (Leaf a)  = do
-                        replicateM (d - x) (putStr "        ") 
+ppTree' :: Int -> Tree Int -> IO()
+ppTree' d (Leaf a)  = do
+                        replicateM (d - 2) (putStr "        ") 
                         putStr "\t"
                         putStr "    ⊢---"
                         print a
