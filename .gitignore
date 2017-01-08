@@ -2,7 +2,7 @@
 *.html
 file*
 grep
-sed
+sed*
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
