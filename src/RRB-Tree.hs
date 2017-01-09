@@ -1,9 +1,14 @@
-import qualified Data.Vector as V
+import Data.Ord
+import System.Time
+import System.IO 
+import System.Environment
 import Control.Monad
+import Control.DeepSeq
+
 
 
 branchingFactor :: Int
-branchingFactor = 4 -- Branching factor of tree
+branchingFactor = 32 -- Branching factor of tree
 
 
 ------------------------------------------------------
@@ -52,7 +57,7 @@ collect n as = take n as : collect n (drop n as)
 ppTree t = ppTree' level level t
         where Node level _ _ = t
 
-ppTree' :: Int -> Int -> Tree Int -> IO()
+ppTree' :: (Show a) => Int -> Int -> Tree a -> IO()
 ppTree' d x (Leaf a)  = do
                         replicateM (d - x) (putStr "        ") 
                         putStr "\t"
@@ -228,8 +233,32 @@ rrbConcat' :: Int -> Int -> (Tree a, Tree a, Tree a) -> (Tree a, Tree a, Tree a)
 rrbConcat' maxl l ts = case maxl == l of 
                        True -> newTrees
                        False -> rrbConcat' maxl (l+1) newTrees
-                    where newTrees = mergeAt l ts 
+                    where newTrees = mergeAt l ts
 
+flatten :: Tree a -> [a]
+flatten (Leaf as) = as
+flatten (Node _ ts _) = concat $ map flatten ts
+
+main :: IO()
+main = do 
+       data1 <- readFile "fileaa"
+       data2 <- readFile "fileab"
+       data3 <- readFile "fileac"
+       let tree1 = buildTree data1
+       let tree2 = buildTree data2
+       let tree3 = buildTree data3
+       let final = rrbConcat tree1 tree2
+       t1 <- getClockTime
+       t2 <- (getSizes final) `deepseq` getClockTime
+       print (diffClockTimes t2 t1)
+       let final2 = rrbConcat final tree3
+       t1 <- getClockTime
+       t2 <- (getSizes final2) `deepseq` getClockTime
+       print (diffClockTimes t2 t1)
+       writeFile "tables.html" (flatten final2)
+       return ()
+       --ppTree final
+{-
 badger :: Tree Int
 badger = t1
       where t1 = dropRightChild oneto10 1
@@ -238,3 +267,4 @@ badger = t1
             (t1',t2',t3') =  mergeAt 2 (t1,t2,t3)
             (t1'',t2'',t3'') =  mergeAt 3 (t1',t2',t3')
             (t1''',t2''',t3''') =  mergeAt 4 (t1'',t2'',t3'')
+-}

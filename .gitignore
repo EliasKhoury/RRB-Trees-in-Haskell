@@ -3,6 +3,7 @@
 file*
 grep
 sed*
+*.txt
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
