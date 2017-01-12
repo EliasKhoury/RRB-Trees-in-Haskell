@@ -80,9 +80,11 @@ ppTree' d x (Node n ts ss) = do
 
 ------------------------------------------------------
 --                                                  --
---                  LOOKUP FUNCTION                 --
+--                  INDEX FUNCTION                  --
 --                                                  --
 ------------------------------------------------------
+
+
 
 -- Given an index, the lookup function returns the leaf at that index
 radixSearch :: Int -> Tree a -> a 
@@ -104,11 +106,9 @@ relaxedSearch i (Node l ts ss)  = relaxedSearch (i - iOffset) (ts !! subTree)
 
 ------------------------------------------------------
 --                                                  --
---                  CONCAT FUNCTION                 --
+--                 TAKE AND DROP                    --
 --                                                  --
 ------------------------------------------------------
-
-data Choice = Left | Right
 
 getEndChild :: Tree a -> Int -> ([Tree a] -> Tree a) -> Tree a
 getEndChild (Leaf a) _ _       = Leaf a
@@ -154,7 +154,12 @@ dropRightChild (Node l ts ss) n | l == n    = Node l (init ts) (if (length ss > 
                                 | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) ss 
 -}
 
--- Joins the ends of two trees to start the merging process
+
+------------------------------------------------------
+--                                                  --
+--                  CONCAT FUNCTION                 --
+--                                                  --
+------------------------------------------------------
 
 -- Extracts children from a tree
 getKids :: Tree a -> [Tree a]
@@ -203,12 +208,12 @@ calcNewSize (s:ss) l i = cumulativeIndex : (calcNewSize ss l cumulativeIndex)
 
 
 mergeRebalance :: (Tree a,Tree a,Tree a) -> Tree a
-mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] (computeSizes [left,right] (l+1)) -- FIND SIZES
+mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] (computeSizes [left,right] (l+1))
                         where mergedNodes = mergeNodes[t1,t2,t3]
                               Node l _ _  = t1
                               leftChildren = (take branchingFactor mergedNodes)
                               rightChildren = (drop branchingFactor mergedNodes)
-                              left = Node l leftChildren (computeSizes leftChildren l) -- FIND SIZES
+                              left = Node l leftChildren (computeSizes leftChildren l)
                               right = Node l rightChildren (computeSizes rightChildren l)
 
 
@@ -235,9 +240,19 @@ rrbConcat' maxl l ts = case maxl == l of
                        False -> rrbConcat' maxl (l+1) newTrees
                     where newTrees = mergeAt l ts
 
+
+------------------------------------------------------
+--                                                  --
+--                  MAIN FUNCTION                   --
+--                                                  --
+------------------------------------------------------
+
 flatten :: Tree a -> [a]
 flatten (Leaf as) = as
 flatten (Node _ ts _) = concat $ map flatten ts
+
+genFileNames :: [String]
+genFileNames = map (file++) (zip [a..z [a..z]])
 
 main :: IO()
 main = do 

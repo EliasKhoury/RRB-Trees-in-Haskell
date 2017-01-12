@@ -1,0 +1,1 @@
+pygmentize -l haskell -f latex -P commandprefix=PYG -F tokenmerge -o "report.out.pyg" "report.pyg" 
