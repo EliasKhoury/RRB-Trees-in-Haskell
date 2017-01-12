@@ -283,6 +283,11 @@ mergeAt n (t1,t2,t3) = (leftTree,mid,rightTree)
 
 \section{Empirical Evaluation}
 
+The datastructure was evaluated using 189 files which in total contained 382,502,785 characters. Each of the files contained the source code for an HTML table, the objective was to simulate the dynamic generation of HTML code by concatenating each file to append rows at the bottom of the table. The tests were done by keeping a current tree of the HTML code in memory and constantly appending new data to the tree in order to accumulate the HTML code. Once the whole tree was built, the leaf nodes were sequentially written to a file. The runtime of each concatenation operation is shown below, it is worth noting that it took longer to convert the raw HTML code into the Haskell tree structure than it did to actually append the trees together, this is quite a limitation on usability of this datastructure. 
+
+
+
+
 \section{Conclusion}
 
 \bibliographystyle{abbrvnat}
