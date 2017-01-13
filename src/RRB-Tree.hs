@@ -1,11 +1,10 @@
 import Data.Ord
-import System.Time
+import Data.Time.Clock
 import System.IO 
+import System.Random
 import System.Environment
 import Control.Monad
 import Control.DeepSeq
-
-
 
 branchingFactor :: Int
 branchingFactor = 32 -- Branching factor of tree
@@ -27,10 +26,10 @@ testTree :: Int -> Tree Int
 testTree n = buildTree [0..n]
 
 oneto10 :: Tree Int
-oneto10 = buildTree[0..299]
+oneto10 = buildTree[0..30]
 
 tento20 :: Tree Int
-tento20 = buildTree[300..449]
+tento20 = buildTree[30001..40000]
 
 buildTree :: [a] -> Tree a
 buildTree as = buildNodes leaves 1
@@ -80,13 +79,15 @@ ppTree' d x (Node n ts ss) = do
 
 ------------------------------------------------------
 --                                                  --
---                  LOOKUP FUNCTION                 --
+--                  INDEX FUNCTION                  --
 --                                                  --
 ------------------------------------------------------
 
+
+
 -- Given an index, the lookup function returns the leaf at that index
 radixSearch :: Int -> Tree a -> a 
-radixSearch n (Leaf as) = as !! (n `mod` branchingFactor)
+radixSearch i (Leaf as) = as !! (i `mod` branchingFactor)
 radixSearch i (Node l ts ss) = radixSearch (i - iOffset) (ts !! nodeCount) 
                 where nodeCount = (i `div` (branchingFactor ^ l)) `mod` branchingFactor
                       iOffset   = (branchingFactor ^ l) * nodeCount
@@ -104,11 +105,23 @@ relaxedSearch i (Node l ts ss)  = relaxedSearch (i - iOffset) (ts !! subTree)
 
 ------------------------------------------------------
 --                                                  --
---                  CONCAT FUNCTION                 --
+--                 TAKE AND DROP                    --
 --                                                  --
 ------------------------------------------------------
 
-data Choice = Left | Right
+head' :: Tree a -> a
+head' t = head leaves
+    where Leaf leaves = getLeftChild t 0
+
+tail' :: Tree a -> Tree a
+tail' t = dropLeftChild t 0
+
+init' :: Tree a -> Tree a
+init' t = dropRightChild t 0
+
+last' :: Tree a -> a
+last' t = last leaves
+    where Leaf leaves = getRightChild t 0
 
 getEndChild :: Tree a -> Int -> ([Tree a] -> Tree a) -> Tree a
 getEndChild (Leaf a) _ _       = Leaf a
@@ -123,38 +136,23 @@ getRightChild :: Tree a -> Int -> Tree a
 getRightChild tree l = getEndChild tree l last
 
 dropLeftChild :: Tree a -> Int -> Tree a
+dropLeftChild (Leaf as) _      = Leaf (tail as)
 dropLeftChild (Node l [] _) _ = Node l [] []
 dropLeftChild (Node l ts _) n | l == n = Node l [] []
                               | otherwise = Node l ([dropLeftChild (head ts) n] ++ tail ts) []
 
 dropRightChild :: Tree a -> Int -> Tree a
+dropRightChild (Leaf as) _     = Leaf (init as)
 dropRightChild (Node l [] _) _ = Node l [] []
 dropRightChild (Node l ts _) n | l == n = Node l [] []
-                               | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) []         
+                               | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) []
 
 
-{-
-
-dropRightChild :: Tree a -> Int -> Tree a
-dropRightChild (Node l ts _) n = if singleKid || l == (n + 1) then Node l (init ts) [] else Node l (init ts ++ [dropRightChild (last ts) n]) []
-                  where singleKid = length (getKids (last ts)) == 1
-
-dropLeftChild :: Tree a -> Int -> Tree a
-dropLeftChild (Node l ts _) n = if singleKid || l == (n + 1) then Node l (tail ts) [] else Node l ([dropLeftChild (head ts) n] ++ tail ts) []
-                  where singleKid = length (getKids (head ts)) == 1
-
-dropLeftChild :: Tree a -> Int -> Tree a
-dropLeftChild (Leaf a) _ = Leaf a
-dropLeftChild (Node l ts ss) n | l == n    = Node l (tail ts) (if (length ss > 0) then tail ss else [])
-                               | otherwise = Node l ([dropLeftChild (head ts) n] ++ tail ts) ss 
-
-dropRightChild :: Tree a -> Int -> Tree a
-dropRightChild (Leaf a) _ = Leaf a
-dropRightChild (Node l ts ss) n | l == n    = Node l (init ts) (if (length ss > 0) then init ss else [])
-                                | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) ss 
--}
-
--- Joins the ends of two trees to start the merging process
+------------------------------------------------------
+--                                                  --
+--                  CONCAT FUNCTION                 --
+--                                                  --
+------------------------------------------------------
 
 -- Extracts children from a tree
 getKids :: Tree a -> [Tree a]
@@ -203,12 +201,12 @@ calcNewSize (s:ss) l i = cumulativeIndex : (calcNewSize ss l cumulativeIndex)
 
 
 mergeRebalance :: (Tree a,Tree a,Tree a) -> Tree a
-mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] (computeSizes [left,right] (l+1)) -- FIND SIZES
+mergeRebalance (t1,t2,t3) = Node (l + 1) [left,right] (computeSizes [left,right] (l+1))
                         where mergedNodes = mergeNodes[t1,t2,t3]
                               Node l _ _  = t1
                               leftChildren = (take branchingFactor mergedNodes)
                               rightChildren = (drop branchingFactor mergedNodes)
-                              left = Node l leftChildren (computeSizes leftChildren l) -- FIND SIZES
+                              left = Node l leftChildren (computeSizes leftChildren l)
                               right = Node l rightChildren (computeSizes rightChildren l)
 
 
@@ -222,49 +220,63 @@ mergeAt n (t1,t2,t3) = (leftTree,mid,rightTree)
                       rightChild = getLeftChild t3 n
 
 rrbConcat :: Tree a -> Tree a -> Tree a
-rrbConcat t1@(Node l1 _ _) t2@(Node l2 _ _) = merged
+rrbConcat t1@(Node l1 _ _) t2@(Node l2 _ _) = head ts
         where maxHeight = max l1 l2
               left      = dropRightChild t1 1
               middle    = mergeEnds t1 t2
               right     = dropLeftChild t2 1
-              (_,merged,_) = rrbConcat' maxHeight 2 (left,middle,right)
+              (_,Node _ ts _,_) = rrbConcat' maxHeight 2 (left,middle,right)
 
 rrbConcat' :: Int -> Int -> (Tree a, Tree a, Tree a) -> (Tree a, Tree a, Tree a)
 rrbConcat' maxl l ts = case maxl == l of 
-                       True -> newTrees
+                       True  -> newTrees
                        False -> rrbConcat' maxl (l+1) newTrees
                     where newTrees = mergeAt l ts
+
+
+------------------------------------------------------
+--                                                  --
+--                  MAIN FUNCTION                   --
+--                                                  --
+------------------------------------------------------
 
 flatten :: Tree a -> [a]
 flatten (Leaf as) = as
 flatten (Node _ ts _) = concat $ map flatten ts
 
+genFileNames :: [String]
+genFileNames = take 189 (map ("../data/testing-data/file"++) letters)
+        where letters = [(a:b:[]) | a <- ['a'..'z'], b <- ['a'..'z']]
+
+treeAppend :: Tree Char -> String -> IO(Tree Char)
+treeAppend tree1 s = do 
+            data1 <- readFile s
+            let tree2 = buildTree data1
+            let final = rrbConcat tree1 tree2
+            t1 <- getCurrentTime
+            t2 <- (getSizes final) `deepseq` getCurrentTime
+            let timeDiff1 = diffUTCTime t2 t1
+            g <- newStdGen
+            let (index,_) = randomR (0,head (getSizes final)) g
+            t1 <- getCurrentTime
+            t2 <- (relaxedSearch (index - 10) final) `deepseq` getCurrentTime
+            let timeDiff2 = diffUTCTime t2 t1
+            print (show timeDiff1 ++ " " ++ show timeDiff2)
+            return final
+
+joinFiles :: [String] -> Tree Char -> IO (Tree Char)
+joinFiles [] t = return (t)
+joinFiles (x:xs) t = do
+                  tree <- treeAppend t x
+                  joinFiles xs tree
+
 main :: IO()
 main = do 
-       data1 <- readFile "fileaa"
-       data2 <- readFile "fileab"
-       data3 <- readFile "fileac"
+       [data1,data2] <- mapM readFile (take 2 genFileNames)
        let tree1 = buildTree data1
        let tree2 = buildTree data2
-       let tree3 = buildTree data3
-       let final = rrbConcat tree1 tree2
-       t1 <- getClockTime
-       t2 <- (getSizes final) `deepseq` getClockTime
-       print (diffClockTimes t2 t1)
-       let final2 = rrbConcat final tree3
-       t1 <- getClockTime
-       t2 <- (getSizes final2) `deepseq` getClockTime
-       print (diffClockTimes t2 t1)
-       writeFile "tables.html" (flatten final2)
+       let joined = rrbConcat tree1 tree2
+       final <- joinFiles (drop 2 genFileNames) joined
+       writeFile "tables.html" (flatten final)
        return ()
        --ppTree final
-{-
-badger :: Tree Int
-badger = t1
-      where t1 = dropRightChild oneto10 1
-            t2 = mergeEnds oneto10 tento20
-            t3 = dropLeftChild tento20 1
-            (t1',t2',t3') =  mergeAt 2 (t1,t2,t3)
-            (t1'',t2'',t3'') =  mergeAt 3 (t1',t2',t3')
-            (t1''',t2''',t3''') =  mergeAt 4 (t1'',t2'',t3'')
--}
