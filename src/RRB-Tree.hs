@@ -26,7 +26,7 @@ testTree :: Int -> Tree Int
 testTree n = buildTree [0..n]
 
 oneto10 :: Tree Int
-oneto10 = buildTree[0..30000]
+oneto10 = buildTree[0..30]
 
 tento20 :: Tree Int
 tento20 = buildTree[30001..40000]
@@ -109,6 +109,20 @@ relaxedSearch i (Node l ts ss)  = relaxedSearch (i - iOffset) (ts !! subTree)
 --                                                  --
 ------------------------------------------------------
 
+head' :: Tree a -> a
+head' t = head leaves
+    where Leaf leaves = getLeftChild t 0
+
+tail' :: Tree a -> Tree a
+tail' t = dropLeftChild t 0
+
+init' :: Tree a -> Tree a
+init' t = dropRightChild t 0
+
+last' :: Tree a -> a
+last' t = last leaves
+    where Leaf leaves = getRightChild t 0
+
 getEndChild :: Tree a -> Int -> ([Tree a] -> Tree a) -> Tree a
 getEndChild (Leaf a) _ _       = Leaf a
 getEndChild (Node l [] ss) n f = Node l [] ss
@@ -122,36 +136,16 @@ getRightChild :: Tree a -> Int -> Tree a
 getRightChild tree l = getEndChild tree l last
 
 dropLeftChild :: Tree a -> Int -> Tree a
+dropLeftChild (Leaf as) _      = Leaf (tail as)
 dropLeftChild (Node l [] _) _ = Node l [] []
 dropLeftChild (Node l ts _) n | l == n = Node l [] []
                               | otherwise = Node l ([dropLeftChild (head ts) n] ++ tail ts) []
 
 dropRightChild :: Tree a -> Int -> Tree a
+dropRightChild (Leaf as) _     = Leaf (init as)
 dropRightChild (Node l [] _) _ = Node l [] []
 dropRightChild (Node l ts _) n | l == n = Node l [] []
-                               | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) []         
-
-
-{-
-
-dropRightChild :: Tree a -> Int -> Tree a
-dropRightChild (Node l ts _) n = if singleKid || l == (n + 1) then Node l (init ts) [] else Node l (init ts ++ [dropRightChild (last ts) n]) []
-                  where singleKid = length (getKids (last ts)) == 1
-
-dropLeftChild :: Tree a -> Int -> Tree a
-dropLeftChild (Node l ts _) n = if singleKid || l == (n + 1) then Node l (tail ts) [] else Node l ([dropLeftChild (head ts) n] ++ tail ts) []
-                  where singleKid = length (getKids (head ts)) == 1
-
-dropLeftChild :: Tree a -> Int -> Tree a
-dropLeftChild (Leaf a) _ = Leaf a
-dropLeftChild (Node l ts ss) n | l == n    = Node l (tail ts) (if (length ss > 0) then tail ss else [])
-                               | otherwise = Node l ([dropLeftChild (head ts) n] ++ tail ts) ss 
-
-dropRightChild :: Tree a -> Int -> Tree a
-dropRightChild (Leaf a) _ = Leaf a
-dropRightChild (Node l ts ss) n | l == n    = Node l (init ts) (if (length ss > 0) then init ss else [])
-                                | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) ss 
--}
+                               | otherwise = Node l (init ts ++ [dropRightChild (last ts) n]) []
 
 
 ------------------------------------------------------
@@ -251,7 +245,7 @@ flatten (Leaf as) = as
 flatten (Node _ ts _) = concat $ map flatten ts
 
 genFileNames :: [String]
-genFileNames = take 10 (map ("../data/testing-data/file"++) letters)
+genFileNames = take 189 (map ("../data/testing-data/file"++) letters)
         where letters = [(a:b:[]) | a <- ['a'..'z'], b <- ['a'..'z']]
 
 treeAppend :: Tree Char -> String -> IO(Tree Char)
@@ -261,12 +255,13 @@ treeAppend tree1 s = do
             let final = rrbConcat tree1 tree2
             t1 <- getCurrentTime
             t2 <- (getSizes final) `deepseq` getCurrentTime
-            print (diffUTCTime t2 t1)
+            let timeDiff1 = diffUTCTime t2 t1
             g <- newStdGen
             let (index,_) = randomR (0,head (getSizes final)) g
             t1 <- getCurrentTime
-            t2 <- (relaxedSearch index final) `deepseq` getCurrentTime
-            print (diffUTCTime t2 t1)
+            t2 <- (relaxedSearch (index - 10) final) `deepseq` getCurrentTime
+            let timeDiff2 = diffUTCTime t2 t1
+            print (show timeDiff1 ++ " " ++ show timeDiff2)
             return final
 
 joinFiles :: [String] -> Tree Char -> IO (Tree Char)
@@ -281,9 +276,6 @@ main = do
        let tree1 = buildTree data1
        let tree2 = buildTree data2
        let joined = rrbConcat tree1 tree2
-       t1 <- getCurrentTime
-       t2 <- (getSizes joined) `deepseq` getCurrentTime
-       print (diffUTCTime t2 t1)
        final <- joinFiles (drop 2 genFileNames) joined
        writeFile "tables.html" (flatten final)
        return ()

@@ -5,6 +5,9 @@ grep
 sed*
 *.txt
 
+*.o
+*.hi
+
 ## Core latex/pdflatex auxiliary files:
 *.aux
 *.lof
